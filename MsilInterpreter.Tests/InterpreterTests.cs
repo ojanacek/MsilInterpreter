@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Linq;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using MsilInterpreterLib;
 
@@ -102,6 +103,21 @@ namespace MsilInterpreter.Tests
             Assert.IsTrue(interpreter.Stack.Count == 0);
             // ReSharper disable once CompareOfFloatsByEqualityOperator
             Assert.IsTrue((double) interpreter.Locals[0] == 100);
+        }
+
+        private void StringHandling()
+        {
+            string text = "Hello, word!";
+        }
+
+        [TestMethod]
+        public void StringHandlingTest()
+        {
+            interpreter.Run(StringHandling);
+            Assert.IsTrue(interpreter.Stack.Count == 0);
+            var heapString = interpreter.Heap.FirstGen.Values.FirstOrDefault();
+            Assert.IsNotNull(heapString);
+            Assert.AreEqual(heapString.Data, "Hello, word!");
         }
     }
 }

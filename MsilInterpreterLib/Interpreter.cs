@@ -109,6 +109,12 @@ namespace MsilInterpreterLib
                 case "ldloc.2": PushLocalToStack(2); break;
                 case "ldloc.3": PushLocalToStack(3); break;
                 case "ldloc.s": PushLocalToStack((byte) instruction.Operand); break;
+                case "ldstr":
+                {
+                    var reference = Heap.Store(instruction.Operand, typeof(string));
+                    Stack.Push(reference);
+                    break;
+                }
                 case "mul":
                 {
                     dynamic v1 = Stack.Pop();
