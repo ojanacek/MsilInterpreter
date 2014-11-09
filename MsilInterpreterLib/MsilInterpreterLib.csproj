@@ -42,6 +42,8 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="GarbageCollector.cs" />
+    <Compile Include="Heap.cs" />
     <Compile Include="ILInstruction.cs" />
     <Compile Include="ILParser.cs" />
     <Compile Include="Interpreter.cs" />
