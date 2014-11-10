@@ -231,6 +231,8 @@ namespace MsilInterpreterLib
             switch (instruction.Code.Name)
             {
                 case "call":
+                case "callvirt":
+                {
                     var method = instruction.Operand as MethodInfo;
                     if (method == null) break;
 
@@ -248,10 +250,49 @@ namespace MsilInterpreterLib
                             result = nestedInterpreter.Run(method, method.ReturnType != typeof(void));
                         }
                     }
+                    else
+                    {
+                        var targetReference = Stack.Pop();
+                        var targetInstance = Heap.Get((int) targetReference);
+
+                        if (method.Module.Name == "mscorlib.dll" || method.IsSpecialName)
+                            result = method.Invoke(targetInstance.Data, arguments);
+                        else
+                        {
+                            throw new NotImplementedException("this type of method call is not supported yet");
+                        }
+                    }
 
                     if (result != null)
                         Stack.Push(result);
                     break;
+                }
+                case "newobj":
+                {
+                    var ctor = instruction.Operand as ConstructorInfo;
+                    if (ctor == null) break;
+
+                    var parameters = ctor.GetParameters();
+                    var arguments = new object[parameters.Length];
+                    for (int i = parameters.Length - 1; i >= 0; i--)
+                    {
+                        var arg = Stack.Pop();
+                        if (!parameters[i].ParameterType.IsValueType)
+                        {
+                            var heapObject = Heap.Get((int) arg);
+                            arguments[i] = heapObject.Data;
+                        }
+                        else
+                        {
+                            arguments[i] = arg;
+                        }
+                    }
+
+                    var newObject = ctor.Invoke(arguments);
+                    var reference = Heap.Store(newObject, newObject.GetType());
+                    Stack.Push(reference);
+                    break;
+                }
                 default:
                     throw new NotImplementedException(instruction.Code.Name + " is not implemented.");
             }

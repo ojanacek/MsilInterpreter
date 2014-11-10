@@ -178,5 +178,30 @@ namespace MsilInterpreter.Tests
             Assert.IsTrue(interpreter.Stack.Count == 0);
             Assert.AreEqual((int) result, SumArrayOfNumbers());
         }
+
+        private class Person
+        {
+            public string Name { get; set; }
+            public int Age { get; set; }
+
+            public Person(string name, int age)
+            {
+                Name = name;
+                Age = age;
+            }
+        }
+
+        private int CustomClassBasicOperations()
+        {
+            var person = new Person("John Smith", 30);
+            return person.Age;
+        }
+
+        [TestMethod]
+        public void CustomClassBasicOperationsTest()
+        {
+            var age = interpreter.Run<int>(CustomClassBasicOperations);
+            Assert.AreEqual(age, CustomClassBasicOperations());
+        }
     }
 }
