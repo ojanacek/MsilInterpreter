@@ -151,6 +151,17 @@ namespace MsilInterpreterLib
                 case "ldc.i8":
                 case "ldc.r4":
                 case "ldc.r8": Stack.Push(instruction.Operand); break;
+                case "ldelem.i1":
+                case "ldelem.i2":
+                case "ldelem.i4":
+                {
+                    int index = (int) Stack.Pop();
+                    int arrayReference = (int) Stack.Pop();
+                    var heapObject = Heap.Get(arrayReference);
+                    var array = (int[]) heapObject.Data;
+                    Stack.Push(array[index]);
+                    break;
+                }
                 case "ldloc.0": PushLocalToStack(0); break;
                 case "ldloc.1": PushLocalToStack(1); break;
                 case "ldloc.2": PushLocalToStack(2); break;
@@ -169,12 +180,33 @@ namespace MsilInterpreterLib
                     Stack.Push(v1 * v2);
                     break;
                 }
+                case "newarr":
+                {
+                    int size = (int)Stack.Pop();
+                    var arrayType = (Type) instruction.Operand;
+                    var array = Array.CreateInstance(arrayType, size);
+                    var reference = Heap.Store(array, array.GetType());
+                    Stack.Push(reference);
+                    break;
+                }
                 case "nop": break;
                 case "rem":
                 {
                     dynamic v2 = Stack.Pop();
                     dynamic v1 = Stack.Pop();
                     Stack.Push(v1 % v2);
+                    break;
+                }
+                case "stelem.i1":
+                case "stelem.i2":
+                case "stelem.i4":
+                {
+                    int value = (int) Stack.Pop();
+                    int index = (int) Stack.Pop();
+                    int arrayReference = (int) Stack.Pop();
+                    var heapObject = Heap.Get(arrayReference);
+                    var array = (int[]) heapObject.Data;
+                    array[index] = value;
                     break;
                 }
                 case "stloc.0": PopFromStackToLocal(0); break;

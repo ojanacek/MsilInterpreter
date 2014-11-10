@@ -134,7 +134,7 @@ namespace MsilInterpreter.Tests
         {
             var number = interpreter.Run<int>(GetNumber);
             Assert.IsTrue(interpreter.Stack.Count == 0);
-            Assert.AreEqual((int) number, 10);
+            Assert.AreEqual((int) number, GetNumber());
         }
 
         private void CallCustomMethodFromMethod()
@@ -151,6 +151,32 @@ namespace MsilInterpreter.Tests
             Assert.IsTrue(interpreter.Stack.Count == 0);
             Assert.AreEqual((int) interpreter.Locals[0], 20); // x
             Assert.AreEqual((int) interpreter.Locals[1], 10); // y
+        }
+
+        private int SumArrayOfNumbers()
+        {
+            int[] array = new int[5];
+            array[0] = 1;
+            array[1] = 2;
+            array[2] = 3;
+            array[3] = 4;
+            array[4] = 5;
+
+            int index = 0;
+            int sum = 0;
+            while (index < 5)
+            {
+                sum += array[index++];
+            }
+            return sum;
+        }
+
+        [TestMethod]
+        public void SumArrayOfNumbersTest()
+        {
+            var result = interpreter.Run<int>(SumArrayOfNumbers);
+            Assert.IsTrue(interpreter.Stack.Count == 0);
+            Assert.AreEqual((int) result, SumArrayOfNumbers());
         }
     }
 }
