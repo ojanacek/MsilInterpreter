@@ -119,5 +119,34 @@ namespace MsilInterpreter.Tests
             Assert.IsNotNull(heapString);
             Assert.AreEqual(heapString.Data, "Hello, word!");
         }
+
+        private static int GetNumber()
+        {
+            return 10;
+        }
+
+        [TestMethod]
+        public void MethodCallWithReturnValueTest()
+        {
+            var number = interpreter.Run<int>(GetNumber);
+            Assert.IsTrue(interpreter.Stack.Count == 0);
+            Assert.AreEqual((int) number, 10);
+        }
+
+        private void CallCustomMethodFromMethod()
+        {
+            int x = 20;
+            int y = GetNumber();
+            int z = x + y;
+        }
+
+        [TestMethod]
+        public void CallCustomMethodFromMethodTest()
+        {
+            interpreter.Run(CallCustomMethodFromMethod);
+            Assert.IsTrue(interpreter.Stack.Count == 0);
+            Assert.AreEqual((int) interpreter.Locals[0], 20); // x
+            Assert.AreEqual((int) interpreter.Locals[1], 10); // y
+        }
     }
 }

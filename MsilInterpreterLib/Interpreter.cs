@@ -8,14 +8,24 @@ namespace MsilInterpreterLib
 {
     public class Interpreter
     {
-        internal ILParser Parser { get; } = new ILParser();
+        internal static ILParser Parser { get; } = new ILParser();
+        internal Heap Heap { get; private set; }
         /// <summary>
         /// Using a stack of objects removes necessity to cast stored values to the tightest representation.
         /// For example, ldc.i4.s loads Int32 like ldc.i4 does instead of byte because casting it to object is causing overhead no matter which type. 
         /// </summary>
         internal Stack<object> Stack { get; } = new Stack<object>(); 
-        internal Heap Heap { get; } = new Heap(10, 100);
         internal object[] Locals { get; } = new object[255];
+
+        private Interpreter(Heap heap)
+        {
+            Heap = heap;
+        }
+
+        public Interpreter()
+        {
+            Heap = new Heap(10, 100);
+        }
 
         public void Run(Action action)
         {   
@@ -23,7 +33,20 @@ namespace MsilInterpreterLib
             if (!instructions.Any())
                 return;
 
-            var offsetToIndexMapping = instructions.Select((instruction, index) => new { instruction.Offset, Index = index})
+            Interpret(instructions);
+        }
+
+        public object Run<T>(Func<T> action)
+        {
+            var instructions = Parser.ParseILFromMethod(action.GetMethodInfo()).ToList();
+            // no need to check instructions, methods with a return type would not compile without a body
+            Interpret(instructions);
+            return Stack.Pop();
+        }
+
+        private void Interpret(List<ILInstruction> instructions)
+        {
+            var offsetToIndexMapping = instructions.Select((instruction, index) => new { instruction.Offset, Index = index })
                                                    .ToDictionary(x => x.Offset, x => x.Index);
 
             var flowIndexer = 0;
@@ -90,6 +113,10 @@ namespace MsilInterpreterLib
                     Stack.Push(v2 < v1 ? 1 : 0);
                     break;
                 }
+                case "ldarg.0":
+                    if (instruction.Operand != null)
+                        Stack.Push(instruction.Operand);
+                    break;
                 case "ldc.i4.0": Stack.Push(0); break;
                 case "ldc.i4.1": Stack.Push(1); break;
                 case "ldc.i4.2": Stack.Push(2); break;
