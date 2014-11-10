@@ -28,20 +28,26 @@ namespace MsilInterpreterLib
         }
 
         public void Run(Action action)
-        {   
-            var instructions = Parser.ParseILFromMethod(action.GetMethodInfo()).ToList();
-            if (!instructions.Any())
-                return;
-
-            Interpret(instructions);
+        {
+            Run(action.GetMethodInfo(), false);
         }
 
-        public object Run<T>(Func<T> action)
+        public object Run<T>(Func<T> function)
         {
-            var instructions = Parser.ParseILFromMethod(action.GetMethodInfo()).ToList();
-            // no need to check instructions, methods with a return type would not compile without a body
+            return Run(function.GetMethodInfo(), true);
+        }
+
+        private object Run(MethodInfo methodInfo, bool expectResult)
+        {
+            var instructions = Parser.ParseILFromMethod(methodInfo).ToList();
+            if (!instructions.Any())
+                return null;
+
             Interpret(instructions);
-            return Stack.Pop();
+            if (expectResult)
+                return Stack.Pop();
+
+            return null;
         }
 
         private void Interpret(List<ILInstruction> instructions)
@@ -181,7 +187,13 @@ namespace MsilInterpreterLib
                     object result = null;
                     if (method.IsStatic)
                     {
-                        result = method.Invoke(null, arguments);
+                        if (method.Module.Name == "mscorlib.dll")
+                            result = method.Invoke(null, arguments);
+                        else
+                        {
+                            var nestedInterpreter = new Interpreter(Heap);
+                            result = nestedInterpreter.Run(method, method.ReturnType != typeof(void));
+                        }
                     }
 
                     if (result != null)
