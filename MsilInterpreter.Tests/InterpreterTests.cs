@@ -60,6 +60,8 @@ namespace MsilInterpreter.Tests
             int b = a + 20;
             int c = a - 5;
             int d = a * a;
+            int e = a / 2;
+            int f = a % 3;
         }
 
         [TestMethod]
@@ -71,6 +73,8 @@ namespace MsilInterpreter.Tests
             Assert.IsTrue((int) interpreter.Locals[1] == 30); // b
             Assert.IsTrue((int) interpreter.Locals[2] == 5); // c
             Assert.IsTrue((int) interpreter.Locals[3] == 100); // d
+            Assert.IsTrue((int) interpreter.Locals[4] == 5); // e
+            Assert.IsTrue((int) interpreter.Locals[5] == 1); // f
         }
 
         private void ForLoop()

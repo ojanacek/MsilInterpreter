@@ -100,23 +100,37 @@ namespace MsilInterpreterLib
             {
                 case "add":
                 {
-                    dynamic v1 = Stack.Pop();
                     dynamic v2 = Stack.Pop();
+                    dynamic v1 = Stack.Pop();
                     Stack.Push(v1 + v2);
                     break;
                 }
                 case "ceq":
                 {
-                    dynamic v1 = Stack.Pop();
                     dynamic v2 = Stack.Pop();
+                    dynamic v1 = Stack.Pop();
                     Stack.Push(v1 == v2 ? 1 : 0);
+                    break;
+                }
+                case "cgt":
+                {
+                    dynamic v2 = Stack.Pop();
+                    dynamic v1 = Stack.Pop();
+                    Stack.Push(v1 > v2 ? 1 : 0);
                     break;
                 }
                 case "clt":
                 {
-                    dynamic v1 = Stack.Pop();
                     dynamic v2 = Stack.Pop();
-                    Stack.Push(v2 < v1 ? 1 : 0);
+                    dynamic v1 = Stack.Pop();
+                    Stack.Push(v1 < v2 ? 1 : 0);
+                    break;
+                }
+                case "div":
+                {
+                    dynamic v2 = Stack.Pop();
+                    dynamic v1 = Stack.Pop();
+                    Stack.Push(v1 / v2);
                     break;
                 }
                 case "ldarg.0":
@@ -150,12 +164,19 @@ namespace MsilInterpreterLib
                 }
                 case "mul":
                 {
-                    dynamic v1 = Stack.Pop();
                     dynamic v2 = Stack.Pop();
+                    dynamic v1 = Stack.Pop();
                     Stack.Push(v1 * v2);
                     break;
                 }
                 case "nop": break;
+                case "rem":
+                {
+                    dynamic v2 = Stack.Pop();
+                    dynamic v1 = Stack.Pop();
+                    Stack.Push(v1 % v2);
+                    break;
+                }
                 case "stloc.0": PopFromStackToLocal(0); break;
                 case "stloc.1": PopFromStackToLocal(1); break;
                 case "stloc.2": PopFromStackToLocal(2); break;
@@ -163,9 +184,9 @@ namespace MsilInterpreterLib
                 case "stloc.s": PopFromStackToLocal((byte) instruction.Operand); break;
                 case "sub":
                 {
-                    dynamic v1 = Stack.Pop();
                     dynamic v2 = Stack.Pop();
-                    Stack.Push(v2 - v1);
+                    dynamic v1 = Stack.Pop();
+                    Stack.Push(v1 - v2);
                     break;
                 }
                 default:
