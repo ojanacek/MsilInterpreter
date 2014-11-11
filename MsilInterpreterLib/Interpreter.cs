@@ -9,11 +9,12 @@ namespace MsilInterpreterLib
     public class Interpreter
     {
         private static readonly ILParser parser = new ILParser();
+        private readonly Heap heap;
         private readonly Stack<object> stack = new Stack<object>();
         private readonly object[] locals = new object[255];
 
         internal static ILParser Parser { get { return parser; } } 
-        internal Heap Heap { get; private set; }
+        internal Heap Heap { get { return heap; } }
         /// <summary>
         /// Using a stack of objects removes necessity to cast stored values to the tightest representation.
         /// For example, ldc.i4.s loads Int32 like ldc.i4 does instead of byte because casting it to object is causing overhead no matter which type. 
@@ -23,12 +24,12 @@ namespace MsilInterpreterLib
 
         private Interpreter(Heap heap)
         {
-            Heap = heap;
+            this.heap = heap;
         }
 
         public Interpreter()
         {
-            Heap = new Heap(10, 100);
+            heap = new Heap(10, 100);
         }
 
         public void Run(Action action)
