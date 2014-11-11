@@ -3,13 +3,24 @@ using System.Collections.Generic;
 
 namespace MsilInterpreterLib
 {
-    internal sealed partial class Heap(int firstGenSize, int secondGenSize)
+    internal sealed partial class Heap
     {
-        private readonly int firstGenMaxSize = firstGenSize;
-        private readonly int secondGenMaxSize = secondGenSize;
-        public Dictionary<int, HeapObject> FirstGen { get; } = new Dictionary<int, HeapObject>();
-        public Dictionary<int, HeapObject> SecondGen { get; } = new Dictionary<int, HeapObject>();
+        private readonly int firstGenMaxSize;
+        private readonly int secondGenMaxSize;
+        private readonly Dictionary<int, HeapObject> firstGen;
+        private readonly Dictionary<int, HeapObject> secondGen;
+
+        public Dictionary<int, HeapObject> FirstGen { get { return firstGen; } }
+        public Dictionary<int, HeapObject> SecondGen { get { return secondGen; } }
         private readonly GarbageCollector gc = new GarbageCollector();
+
+        public Heap(int firstGenSize, int secondGenSize)
+        {
+            firstGenMaxSize = firstGenSize;
+            secondGenMaxSize = secondGenSize;
+            firstGen = new Dictionary<int, HeapObject>();
+            secondGen = new Dictionary<int, HeapObject>();
+        }
 
         public int Store(object data, Type type)
         {

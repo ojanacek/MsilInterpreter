@@ -4,11 +4,20 @@ using System.Reflection.Emit;
 
 namespace MsilInterpreterLib
 {
-    internal sealed class ILInstruction(OpCode code, int offset)
+    internal sealed class ILInstruction
     {
-        public OpCode Code { get; } = code;
-        public int Offset { get; } = offset;
-        public object Operand { get; set; }        
+        private readonly OpCode code;
+        private readonly int offset;
+
+        public OpCode Code { get { return code; } }
+        public int Offset { get { return offset; } }
+        public object Operand { get; set; }
+
+        public ILInstruction(OpCode code, int offset)
+        {
+            this.code = code;
+            this.offset = offset;
+        }
 
         public override string ToString()
         {
@@ -25,7 +34,8 @@ namespace MsilInterpreterLib
                         fieldOp.ReflectedType.ToString(),
                         fieldOp.Name);                                        
                 case OperandType.InlineMethod:
-                    if ((var methodOp = Operand as MethodInfo) != null)
+                    var methodOp = Operand as MethodInfo;
+                    if (methodOp != null)
                     {
                         return string.Format("{0} {1}{2} {3}::{4}()",
                             result,

@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Linq;
 using System.Reflection;
 using System.Reflection.Emit;
 
@@ -117,9 +116,20 @@ namespace MsilInterpreterLib
 
         #region IL read methods
 
-        private sbyte ReadSByte() => (sbyte) ilBytes[ilBytesPosition++];
-        private byte ReadByte() => ilBytes[ilBytesPosition++];
-        private ushort ReadUInt16() => (ushort)((ilBytes[ilBytesPosition++] | (ilBytes[ilBytesPosition++] << 8)));
+        private sbyte ReadSByte()
+        {
+            return (sbyte) ilBytes[ilBytesPosition++];
+        }
+
+        private byte ReadByte()
+        {
+            return ilBytes[ilBytesPosition++];
+        }
+
+        private ushort ReadUInt16()
+        {
+            return (ushort) ((ilBytes[ilBytesPosition++] | (ilBytes[ilBytesPosition++] << 8)));
+        }
 
         private int ReadInt32()
         {
