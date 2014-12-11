@@ -47,7 +47,7 @@ namespace MsilInterpreterLib.Framework
         {
             var instanceRef = (Guid)interpreter.CurrentStackFrame.Arguments[0];
             var listInstance = interpreter.GetFromHeap(instanceRef);
-            var list = listInstance["Count"] as List<object>;
+            var list = listInstance["Values"] as List<object>;
             interpreter.PushToStack(list.Count);
         }
     }
