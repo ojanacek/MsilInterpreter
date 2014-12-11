@@ -122,6 +122,20 @@ namespace MsilInterpreterLib
                     PushToStack(op1 / op2);
                     break;
                 }
+                case "isinst":
+                {
+                    var objReference = PopFromStack();
+                    // If the object reference itself is a null reference, then isinst likewise returns a null reference.
+                    if (objReference == null)
+                        PushToStack(null);
+
+                    var objType = GetFromHeap((Guid) objReference).TypeHandler;
+                    var possibleConversions = new List<DotType> { objType }; // TODO: test also against its base classes and interfaces
+                    var testAgainstType = LookUpType(instruction.Operand as Type);
+                    var result = possibleConversions.Contains(testAgainstType) ? objReference : null; // TODO: return casted reference
+                    PushToStack(result);
+                    break;
+                }
                 case "ldarg.0":
                 case "ldarg.1":
                 case "ldarg.2":
@@ -468,12 +482,12 @@ namespace MsilInterpreterLib
             if (mb.IsConstructor)
             {
                 var ctor = type.Constructors.FirstOrDefault(c => c.ParametersTypes.SequenceEqual(mb.GetParameters().Select(p => p.ParameterType)));
-                if (ctor == null) throw new NotSupportedException("Not supported constructor " + mb.Name + " in type " + mb.DeclaringType.Name + " in assembly " + mb.Module);
+                if (ctor == null) throw new NotSupportedException("Not supported constructor " + mb.Name + " in type " + mb.DeclaringType.Name + " in assembly " + mb.Module.Name);
                 return ctor;
             }
 
             var method = type.Methods.FirstOrDefault(m => m.Name == mb.Name);
-            if (method == null) throw new NotSupportedException("Not supported method " + mb.Name + " in type " + mb.DeclaringType.Name + " in assembly " + mb.Module);
+            if (method == null) throw new NotSupportedException("Not supported method " + mb.Name + " in type " + mb.DeclaringType.Name + " in assembly " + mb.Module.Name);
             return method;
         }
 
