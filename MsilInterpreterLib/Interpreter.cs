@@ -183,6 +183,14 @@ namespace MsilInterpreterLib
                     PushToStack(array[index]);
                     break;
                 }
+                case "ldfld":
+                {
+                    var instanceRef = PopFromStack();
+                    var instance = GetFromHeap((Guid)instanceRef);
+                    var fieldName = (instruction.Operand as FieldInfo).Name;
+                    PushToStack(instance[fieldName]);
+                    break;
+                }
                 case "ldlen":
                 {
                     var arrayRef = PopFromStack();
