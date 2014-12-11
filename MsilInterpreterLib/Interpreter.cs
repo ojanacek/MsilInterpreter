@@ -130,10 +130,10 @@ namespace MsilInterpreterLib
                     var argPosition = Convert.ToInt32(instruction.Code.Name.Split('.')[1]);
                     var paramPosition = argPosition;
 
-                    if (CurrentStackFrame.CurrentMethod is DotConstructor)
+                    if (!CurrentStackFrame.CurrentMethod.IsStatic)
                     {
                         if (argPosition > 0)
-                            paramPosition--; // ctors have the first parameter (instance they are being called on) hidden
+                            paramPosition--; // instance methods and ctors have the first parameter (instance they are being called on) hidden
                         else
                         {
                             PushToStack(CurrentStackFrame.Arguments[0]);

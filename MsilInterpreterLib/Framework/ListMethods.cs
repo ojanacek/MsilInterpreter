@@ -14,7 +14,7 @@ namespace MsilInterpreterLib.Framework
             var instanceRef = (Guid)interpreter.CurrentStackFrame.Arguments[0];
             var capacity = (int)interpreter.CurrentStackFrame.Arguments[1];
             var listInstance = interpreter.GetFromHeap(instanceRef);
-            listInstance["InnerArray"] = new object[capacity];
+            listInstance["Values"] = new object[capacity];
             listInstance["Capacity"] = capacity;
             listInstance["Count"] = 0;
         }
