@@ -52,6 +52,22 @@ namespace MsilInterpreterLib.Framework
         }
     }
 
+    internal sealed class ListGetItem : DotMethod
+    {
+        public ListGetItem(DotType declaringType) : base("get_Item", declaringType, false, typeof(object), new[] { typeof(int) }, null)
+        {
+        }
+
+        public override void Execute(Interpreter interpreter)
+        {
+            var instanceRef = (Guid)interpreter.CurrentStackFrame.Arguments[0];
+            var listInstance = interpreter.GetFromHeap(instanceRef);
+            int index = (int) interpreter.CurrentStackFrame.Arguments[1];
+            var list = listInstance["Values"] as List<object>;
+            interpreter.PushToStack(list[index]);
+        }
+    }
+
     internal sealed class ListGetRange : DotMethod
     {
         public ListGetRange(DotType declaringType) : base("GetRange", declaringType, false, typeof(List<object>), new[] { typeof(int), typeof(int) }, null)
@@ -84,18 +100,6 @@ namespace MsilInterpreterLib.Framework
             var list = listInstance["Values"] as List<object>;
             int index = list.IndexOf(searchFor);
             interpreter.PushToStack(index);
-        }
-    }
-
-    internal sealed class ListIndexer : DotMethod
-    {
-        public ListIndexer(DotType declaringType) : base("[]", declaringType, false, typeof(object), new[] { typeof(int) }, null)
-        {
-        }
-
-        public override void Execute(Interpreter interpreter)
-        {
-            throw new NotImplementedException();
         }
     }
 

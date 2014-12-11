@@ -122,9 +122,9 @@ namespace MsilInterpreterLib
             {
                 new ListAddRange(listType),
                 new ListGetCount(listType),
+                new ListGetItem(listType),
                 new ListGetRange(listType),
                 new ListIndexOf(listType),
-                new ListIndexer(listType),
                 new ListInsert(listType),
                 new ListRemoveAt(listType),
                 new ListRemoveRange(listType)
