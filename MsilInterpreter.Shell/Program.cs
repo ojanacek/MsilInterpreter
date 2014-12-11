@@ -1,8 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+﻿using MsilInterpreterLib;
 
 namespace MsilInterpreter.Shell
 {
@@ -10,6 +6,9 @@ namespace MsilInterpreter.Shell
     {
         static void Main(string[] args)
         {
+            var runtime = new Runtime();
+            runtime.LoadAssembly("../../../BplusTreeApp/bin/Debug/BplusTreeApp.exe");
+            runtime.StartExecution(args);
         }
     }
 }

@@ -5,14 +5,14 @@ using System.Reflection.Emit;
 
 // list of op-codes: http://msdn.microsoft.com/en-us/library/system.reflection.emit.opcodes(v=vs.110).aspx
 
-namespace MsilInterpreterLib
+namespace MsilInterpreterLib.Msil
 {
     internal sealed class ILParser
     {
         private readonly OpCode[] singleByteCodes = new OpCode[256];
         private readonly OpCode[] doubleByteCodes = new OpCode[256];
 
-        private MethodInfo parsedMethodInfo;
+        private MethodBase parsedMethodInfo;
         private byte[] ilBytes;
         private int ilBytesPosition;
         private readonly List<ILInstruction> instructions = new List<ILInstruction>();
@@ -22,7 +22,7 @@ namespace MsilInterpreterLib
             LoadOpCodes();
         }
 
-        public IEnumerable<ILInstruction> ParseILFromMethod(MethodInfo info)
+        public IEnumerable<ILInstruction> ParseILFromMethod(MethodBase info)
         {
             parsedMethodInfo = info;
             instructions.Clear();

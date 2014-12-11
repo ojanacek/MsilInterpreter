@@ -3,60 +3,38 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
 using System.Reflection.Emit;
+using MsilInterpreterLib.Components;
+using MsilInterpreterLib.Msil;
 
 namespace MsilInterpreterLib
 {
-    public class Interpreter
+    internal class Interpreter
     {
-        private static readonly ILParser parser = new ILParser();
-        private readonly Heap heap;
-        private readonly Stack<object> stack = new Stack<object>();
-        private readonly object[] locals = new object[255];
+        private readonly Runtime runtime;
 
-        internal static ILParser Parser { get { return parser; } } 
-        internal Heap Heap { get { return heap; } }
-        /// <summary>
-        /// Using a stack of objects removes necessity to cast stored values to the tightest representation.
-        /// For example, ldc.i4.s loads Int32 like ldc.i4 does instead of byte because casting it to object is causing overhead no matter which type. 
-        /// </summary>
-        internal Stack<object> Stack { get { return stack; } }
-        internal object[] Locals { get { return locals; } }
+        public Runtime Runtime { get { return runtime; } }
+        public StackFrame CurrentStackFrame { get { return Runtime.CallStack.Peek(); } }
 
-        private Interpreter(Heap heap)
+        public Interpreter(Runtime runtime)
         {
-            this.heap = heap;
+            this.runtime = runtime;
         }
 
-        public Interpreter()
+        public void Execute(DotMethodBase method)
         {
-            heap = new Heap(10, 100);
+            PushToCallStack(method);
+
+            if (method.Body.Count == 0)
+                method.Execute(this);
+            else
+                Interpret(method.Body);
+            
+            UnwindCallStack();
         }
 
-        public void Run(Action action)
+        private void Interpret(IEnumerable<ILInstruction> methodBody)
         {
-            Run(action.GetMethodInfo(), false);
-        }
-
-        public object Run<T>(Func<T> function)
-        {
-            return Run(function.GetMethodInfo(), true);
-        }
-
-        private object Run(MethodInfo methodInfo, bool expectResult)
-        {
-            var instructions = Parser.ParseILFromMethod(methodInfo).ToList();
-            if (!instructions.Any())
-                return null;
-
-            Interpret(instructions);
-            if (expectResult)
-                return Stack.Pop();
-
-            return null;
-        }
-
-        private void Interpret(List<ILInstruction> instructions)
-        {
+            var instructions = methodBody.ToList();
             var offsetToIndexMapping = instructions.Select((instruction, index) => new { instruction.Offset, Index = index })
                                                    .ToDictionary(x => x.Offset, x => x.Index);
 
@@ -78,13 +56,13 @@ namespace MsilInterpreterLib
                         flowIndexer = offsetToIndexMapping[jumpTo];
                         break;
                     case FlowControl.Break:
-                        throw new NotImplementedException(currentInstruction + " is not supported yet");
+                        throw new NotSupportedException(currentInstruction.ToString());
                     case FlowControl.Call:
                         InterpretCallInstruction(currentInstruction);
                         flowIndexer++;
                         break;
                     case FlowControl.Meta:
-                        throw new NotImplementedException(currentInstruction + " is not supported yet");
+                        throw new NotSupportedException(currentInstruction.ToString());
                     case FlowControl.Next:
                         InterpretNextInstruction(currentInstruction);
                         flowIndexer++;
@@ -92,9 +70,9 @@ namespace MsilInterpreterLib
                     case FlowControl.Return:
                         if (currentInstruction.Code.Name == "ret")
                             return;
-                        throw new NotImplementedException(currentInstruction + " is not supported yet");
+                        throw new NotSupportedException(currentInstruction.ToString());
                     case FlowControl.Throw:
-                        throw new NotImplementedException(currentInstruction + " is not supported yet");
+                        throw new NotSupportedException(currentInstruction.ToString());
                 }
             }
         }
@@ -105,66 +83,111 @@ namespace MsilInterpreterLib
             {
                 case "add":
                 {
-                    dynamic v2 = Stack.Pop();
-                    dynamic v1 = Stack.Pop();
-                    Stack.Push(v1 + v2);
+                    dynamic op2 = PopFromStack();
+                    dynamic op1 = PopFromStack();
+                    PushToStack(op1 + op2);
                     break;
                 }
                 case "ceq":
                 {
-                    dynamic v2 = Stack.Pop();
-                    dynamic v1 = Stack.Pop();
-                    Stack.Push(v1 == v2 ? 1 : 0);
+                    dynamic op2 = PopFromStack();
+                    dynamic op1 = PopFromStack();
+                    PushToStack(op1 == op2 ? 1 : 0);
                     break;
                 }
                 case "cgt":
                 {
-                    dynamic v2 = Stack.Pop();
-                    dynamic v1 = Stack.Pop();
-                    Stack.Push(v1 > v2 ? 1 : 0);
+                    dynamic op2 = PopFromStack();
+                    dynamic op1 = PopFromStack();
+                    PushToStack(op1 > op2 ? 1 : 0);
                     break;
                 }
                 case "clt":
                 {
-                    dynamic v2 = Stack.Pop();
-                    dynamic v1 = Stack.Pop();
-                    Stack.Push(v1 < v2 ? 1 : 0);
+                    dynamic value2 = PopFromStack();
+                    dynamic value1 = PopFromStack();
+                    PushToStack(value1 < value2 ? 1 : 0);
+                    break;
+                }
+                case "conv.i4":
+                {
+                    var value = PopFromStack();
+                    PushToStack(Convert.ToInt32(value));
                     break;
                 }
                 case "div":
                 {
-                    dynamic v2 = Stack.Pop();
-                    dynamic v1 = Stack.Pop();
-                    Stack.Push(v1 / v2);
+                    dynamic op2 = PopFromStack();
+                    dynamic op1 = PopFromStack();
+                    PushToStack(op1 / op2);
                     break;
                 }
                 case "ldarg.0":
-                    if (instruction.Operand != null)
-                        Stack.Push(instruction.Operand);
+                case "ldarg.1":
+                case "ldarg.2":
+                case "ldarg.3":
+                {
+                    var argPosition = Convert.ToInt32(instruction.Code.Name.Split('.')[1]);
+                    var paramPosition = argPosition;
+
+                    if (CurrentStackFrame.CurrentMethod is DotConstructor)
+                    {
+                        if (argPosition > 0)
+                            paramPosition--; // ctors have the first parameter (instance they are being called on) hidden
+                        else
+                        {
+                            PushToStack(CurrentStackFrame.Arguments[0]);
+                            break;
+                        }
+                    }
+
+                    var param = CurrentStackFrame.CurrentMethod.ParametersTypes[paramPosition];
+                    if (param.IsValueType)
+                    {
+                        PushToStack(CurrentStackFrame.Arguments[argPosition]);
+                    }
+                    else
+                    {
+                        var reference = (Guid)CurrentStackFrame.Arguments[argPosition];
+                        PushToStack(reference);
+                    }
+                    
                     break;
-                case "ldc.i4.0": Stack.Push(0); break;
-                case "ldc.i4.1": Stack.Push(1); break;
-                case "ldc.i4.2": Stack.Push(2); break;
-                case "ldc.i4.3": Stack.Push(3); break;
-                case "ldc.i4.4": Stack.Push(4); break;
-                case "ldc.i4.5": Stack.Push(5); break;
-                case "ldc.i4.6": Stack.Push(6); break;
-                case "ldc.i4.7": Stack.Push(7); break;
-                case "ldc.i4.8": Stack.Push(8); break;
-                case "ldc.i4.m1": Stack.Push(-1); break;
-                case "ldc.i4.s": Stack.Push(Convert.ToInt32(instruction.Operand)); break;
-                case "ldc.i8":
-                case "ldc.r4":
-                case "ldc.r8": Stack.Push(instruction.Operand); break;
+                }
+                case "ldc.i4.0": PushToStack(0); break;
+                case "ldc.i4.1": PushToStack(1); break;
+                case "ldc.i4.2": PushToStack(2); break;
+                case "ldc.i4.3": PushToStack(3); break;
+                case "ldc.i4.4": PushToStack(4); break;
+                case "ldc.i4.5": PushToStack(5); break;
+                case "ldc.i4.6": PushToStack(6); break;
+                case "ldc.i4.7": PushToStack(7); break;
+                case "ldc.i4.8": PushToStack(8); break;
+                case "ldc.i4.m1": PushToStack(-1); break;
+                case "ldc.i4.s": PushToStack(Convert.ToInt32(instruction.Operand)); break;
                 case "ldelem.i1":
                 case "ldelem.i2":
                 case "ldelem.i4":
                 {
-                    int index = (int) Stack.Pop();
-                    int arrayReference = (int) Stack.Pop();
-                    var heapObject = Heap.Get(arrayReference);
-                    var array = (int[]) heapObject.Data;
-                    Stack.Push(array[index]);
+                    int index = (int) PopFromStack();
+                    var arrayReference = (Guid) PopFromStack();
+                    var array = GetFromHeap(arrayReference)["Values"] as int[];
+                    PushToStack(array[index]);
+                    break;
+                }
+                case "ldelem.ref":
+                {
+                    int index = (int)PopFromStack();
+                    var arrayObjRef = (Guid)PopFromStack();
+                    var array = GetFromHeap(arrayObjRef)["Values"] as Guid[];
+                    PushToStack(array[index]);
+                    break;
+                }
+                case "ldlen":
+                {
+                    var arrayRef = PopFromStack();
+                    var arrayInstance = GetFromHeap((Guid) arrayRef);
+                    PushToStack(arrayInstance["Length"]);
                     break;
                 }
                 case "ldloc.0": PushLocalToStack(0); break;
@@ -174,56 +197,65 @@ namespace MsilInterpreterLib
                 case "ldloc.s": PushLocalToStack((byte) instruction.Operand); break;
                 case "ldstr":
                 {
-                    var reference = Heap.Store(instruction.Operand, typeof(string));
-                    Stack.Push(reference);
-                    break;
-                }
-                case "mul":
-                {
-                    dynamic v2 = Stack.Pop();
-                    dynamic v1 = Stack.Pop();
-                    Stack.Push(v1 * v2);
+                    ObjectInstance stringInstance;
+                    var reference = CreateObjectInstance(LookUpType(typeof(string)), out stringInstance);
+                    stringInstance["Value"] = instruction.Operand;
+                    PushToStack(reference);
                     break;
                 }
                 case "newarr":
                 {
-                    int size = (int)Stack.Pop();
-                    var arrayType = (Type) instruction.Operand;
-                    var array = Array.CreateInstance(arrayType, size);
-                    var reference = Heap.Store(array, array.GetType());
-                    Stack.Push(reference);
+                    ObjectInstance arrayInstance;
+                    var reference = CreateObjectInstance(LookUpType(typeof(Array)), out arrayInstance);
+                    var elementType = (Type) instruction.Operand;
+
+                    int size = (int)PopFromStack();
+                    arrayInstance["Length"] = size;
+                    if (elementType.IsValueType)
+                    {
+                        var array = Array.CreateInstance(elementType, size);
+                        arrayInstance["Values"] = array;
+                    }
+                    else
+                    {
+                        var array = new Guid[size];
+                        arrayInstance["Values"] = array;
+                    }
+
+                    PushToStack(reference);
                     break;
                 }
                 case "nop": break;
-                case "rem":
-                {
-                    dynamic v2 = Stack.Pop();
-                    dynamic v1 = Stack.Pop();
-                    Stack.Push(v1 % v2);
-                    break;
-                }
                 case "stelem.i1":
                 case "stelem.i2":
                 case "stelem.i4":
                 {
-                    int value = (int) Stack.Pop();
-                    int index = (int) Stack.Pop();
-                    int arrayReference = (int) Stack.Pop();
-                    var heapObject = Heap.Get(arrayReference);
-                    var array = (int[]) heapObject.Data;
+                    int value = (int)PopFromStack();
+                    int index = (int)PopFromStack();
+                    var arrayReference = (Guid)PopFromStack();
+                    var array = GetFromHeap(arrayReference)["Values"] as int[];
                     array[index] = value;
+                    break;
+                }
+                case "stfld":
+                {
+                    var newFieldValue = PopFromStack();
+                    var instanceRef = PopFromStack();
+                    var instance = GetFromHeap((Guid)instanceRef);
+                    var fieldName = (instruction.Operand as FieldInfo).Name;
+                    instance[fieldName] = newFieldValue;
                     break;
                 }
                 case "stloc.0": PopFromStackToLocal(0); break;
                 case "stloc.1": PopFromStackToLocal(1); break;
                 case "stloc.2": PopFromStackToLocal(2); break;
                 case "stloc.3": PopFromStackToLocal(3); break;
-                case "stloc.s": PopFromStackToLocal((byte) instruction.Operand); break;
+                case "stloc.s": PopFromStackToLocal((byte)instruction.Operand); break;
                 case "sub":
                 {
-                    dynamic v2 = Stack.Pop();
-                    dynamic v1 = Stack.Pop();
-                    Stack.Push(v1 - v2);
+                    dynamic op2 = PopFromStack();
+                    dynamic op1 = PopFromStack();
+                    PushToStack(op1 - op2);
                     break;
                 }
                 default:
@@ -238,64 +270,19 @@ namespace MsilInterpreterLib
                 case "call":
                 case "callvirt":
                 {
-                    var method = instruction.Operand as MethodInfo;
-                    if (method == null) break;
-
-                    var arguments = method.GetParameters().Select(param => Stack.Pop()).ToArray();
-                    Array.Reverse(arguments);
-
-                    object result = null;
-                    if (method.IsStatic)
-                    {
-                        if (method.Module.Name == "mscorlib.dll")
-                            result = method.Invoke(null, arguments);
-                        else
-                        {
-                            var nestedInterpreter = new Interpreter(Heap);
-                            result = nestedInterpreter.Run(method, method.ReturnType != typeof(void));
-                        }
-                    }
-                    else
-                    {
-                        var targetReference = Stack.Pop();
-                        var targetInstance = Heap.Get((int) targetReference);
-
-                        if (method.Module.Name == "mscorlib.dll" || method.IsSpecialName)
-                            result = method.Invoke(targetInstance.Data, arguments);
-                        else
-                        {
-                            throw new NotImplementedException("this type of method call is not supported yet");
-                        }
-                    }
-
-                    if (result != null)
-                        Stack.Push(result);
+                    var method = LookUpMethod(instruction.Operand as MethodBase);
+                    var nestedInterp = new Interpreter(Runtime);
+                    nestedInterp.Execute(method);
                     break;
                 }
                 case "newobj":
                 {
-                    var ctor = instruction.Operand as ConstructorInfo;
-                    if (ctor == null) break;
-
-                    var parameters = ctor.GetParameters();
-                    var arguments = new object[parameters.Length];
-                    for (int i = parameters.Length - 1; i >= 0; i--)
-                    {
-                        var arg = Stack.Pop();
-                        if (!parameters[i].ParameterType.IsValueType)
-                        {
-                            var heapObject = Heap.Get((int) arg);
-                            arguments[i] = heapObject.Data;
-                        }
-                        else
-                        {
-                            arguments[i] = arg;
-                        }
-                    }
-
-                    var newObject = ctor.Invoke(arguments);
-                    var reference = Heap.Store(newObject, newObject.GetType());
-                    Stack.Push(reference);
+                    var ctor = LookUpMethod(instruction.Operand as ConstructorInfo);
+                    var newObjReference = (ctor as DotConstructor).Invoke(this);
+                    PushToStack(newObjReference);
+                    var nestedInterp = new Interpreter(Runtime);
+                    nestedInterp.Execute(ctor);
+                    PushToStack(newObjReference);
                     break;
                 }
                 default:
@@ -309,32 +296,183 @@ namespace MsilInterpreterLib
             {
                 case "br":
                 case "br.s":
-                    return (int) instruction.Operand;
+                    return (int)instruction.Operand;
                 case "brfalse":
                 case "brfalse.s":
-                    if ((int) Stack.Pop() == 0)
-                        return (int) instruction.Operand;
-
-                    return -1;
+                    return (int)PopFromStack() == 0 ? (int)instruction.Operand : -1;
                 case "brtrue":
                 case "brtrue.s":
-                    if ((int) Stack.Pop() == 1)
-                        return (int) instruction.Operand;
-                    
-                    return -1;
+                    return (int)PopFromStack() == 1 ? (int)instruction.Operand : -1;
                 default:
                     throw new NotImplementedException(instruction.Code.Name + " is not implemented.");
             }
         }
 
+        #region Stack, heap and locals manipulation
+
+        #region Call stack
+
+        private void PushToCallStack(DotMethodBase callee)
+        {
+            CheckFullCallStack();
+
+            var currentlyExecutingMethod = CurrentStackFrame.CurrentMethod;
+            var newFrame = new StackFrame(currentlyExecutingMethod, callee);
+
+            object instanceRef = null;
+            if (!callee.IsStatic)
+                instanceRef = PopFromStack();
+
+            var arguments = new List<object>();
+            foreach (var param in callee.ParametersTypes)
+            {
+                arguments.Add(PopFromStack());
+            }
+
+            if (instanceRef != null)
+            {
+                arguments.Insert(0, instanceRef); // instance methods and ctors have the first parameter (an instance they are being called on) hidden
+                if (arguments.Count > 1)
+                    VerifyArgumentOrder(arguments, callee);
+            }
+
+            newFrame.Arguments = arguments;
+            Runtime.CallStack.Push(newFrame);
+        }
+
+        private void CheckFullCallStack()
+        {
+            // limited depth of the call stack instead of the stack size, just to make a point to throw a StackOverflow exception
+            if (Runtime.CallStack.Count == 25)
+                throw new StackOverflowException("There's too many nested calls (25 is the limit).");
+        }
+
+        private void VerifyArgumentOrder(List<object> arguments, DotMethodBase callee)
+        {
+            // sometimes arguments for instance methods and ctors are reversed, check this anomaly ... TODO: probably could be solved another way, this is a quick fix
+            if (!(arguments[0] is Guid))
+            {
+                arguments.Reverse();
+                return;
+            }
+
+            var instance = GetFromHeap((Guid) arguments[0]);
+            if (instance.TypeHandler != callee.DeclaringType)
+                arguments.Reverse();
+        }
+
+        private void UnwindCallStack()
+        {
+            var frame = Runtime.CallStack.Pop();
+            
+            var method = frame.CurrentMethod as DotMethod;
+            if (method != null && method.ReturnType != typeof(void))
+            {
+                if (frame.Stack.Count == 0)
+                    throw new InvalidOperationException("Can't return a value from a method call, the stack is empty.");
+
+                CurrentStackFrame.Stack.Push(frame.Stack.Pop());
+            }
+        }
+
+        #endregion
+
+        #region Current method call stack and locals
+
+        internal void PushToStack(object value)
+        {
+            CurrentStackFrame.Stack.Push(value);
+        }
+
+        internal object PopFromStack()
+        {
+            return CurrentStackFrame.Stack.Pop();
+        }
+
         private void PushLocalToStack(byte index)
         {
-            Stack.Push(Locals[index]);
+            PushToStack(CurrentStackFrame.Locals[index]);
         }
 
         private void PopFromStackToLocal(byte index)
         {
-            Locals[index] = Stack.Pop();
+            CurrentStackFrame.Locals[index] = CurrentStackFrame.Stack.Pop();
         }
+
+        #endregion
+
+        #region GC heap
+
+        internal Guid CreateObjectInstance(DotType typeHandler, out ObjectInstance instance)
+        {
+            instance = new ObjectInstance(typeHandler);
+            return Runtime.Heap.Store(instance);
+        }
+
+        internal ObjectInstance GetFromHeap(Guid reference)
+        {
+            return Runtime.Heap.Get(reference);
+        }
+
+        internal Guid CreateRefTypeArray(object[] sourceArray)
+        {
+            ObjectInstance arrayInstance;
+            var arrayRef = CreateObjectInstance(LookUpType(typeof(Array)), out arrayInstance);
+            var array = new Guid[sourceArray.Length];
+            arrayInstance["Values"] = array;
+
+            var elemType = sourceArray.GetType().GetElementType();
+            for (int i = 0; i < sourceArray.Length; i++)
+            {
+                ObjectInstance elementInstance;
+                var elementRef = CreateObjectInstance(LookUpType(elemType), out elementInstance);
+                elementInstance["Value"] = sourceArray[i];
+
+                array[i] = elementRef;
+            }
+            arrayInstance["Length"] = sourceArray.Length;
+            return arrayRef;
+        }
+
+        #endregion
+
+        #region Method Tables lookups
+
+        private DotType LookUpType(Type type)
+        {
+            var moduleName = type.Module.Name.Substring(0, type.Module.Name.Length - 4); // removes a file extension .exe or .dll
+
+            var assembly = Runtime.LoadedAssemblies.FirstOrDefault(a => a.Name == moduleName);
+            if (assembly == null)
+                throw new NotSupportedException("Not supported assembly " + moduleName);
+
+            var dotType = assembly.Types.FirstOrDefault(t => t.Name == type.Name);
+            if (dotType == null)
+                throw new NotSupportedException("Not supported type " + type.Name + " in assembly " + moduleName);
+
+            return dotType;
+        }
+
+        private DotMethodBase LookUpMethod(MethodBase mb)
+        {
+            var type = LookUpType(mb.DeclaringType);
+
+            if (mb.IsConstructor)
+            {
+                var ctor = type.Constructors.FirstOrDefault(c => c.ParametersTypes.SequenceEqual(mb.GetParameters().Select(p => p.ParameterType)));
+                if (ctor == null) throw new NotSupportedException("Not supported constructor " + mb.Name + " in type " + mb.DeclaringType.Name + " in assembly " + mb.Module);
+                return ctor;
+            }
+
+            var method = type.Methods.FirstOrDefault(m => m.Name == mb.Name);
+            if (method == null) throw new NotSupportedException("Not supported method " + mb.Name + " in type " + mb.DeclaringType.Name + " in assembly " + mb.Module);
+            return method;
+        }
+
+        #endregion
+        
+        #endregion
+
     }
 }
+ 

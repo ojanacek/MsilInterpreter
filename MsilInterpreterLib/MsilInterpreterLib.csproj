@@ -9,9 +9,9 @@
     <AppDesignerFolder>Properties</AppDesignerFolder>
     <RootNamespace>MsilInterpreterLib</RootNamespace>
     <AssemblyName>MsilInterpreterLib</AssemblyName>
-    <TargetFrameworkVersion>v4.5.1</TargetFrameworkVersion>
+    <TargetFrameworkVersion>v4.0</TargetFrameworkVersion>
     <FileAlignment>512</FileAlignment>
-    <TargetFrameworkProfile />
+    <TargetFrameworkProfile>Client</TargetFrameworkProfile>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
     <DebugSymbols>true</DebugSymbols>
@@ -42,14 +42,28 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="Components\DotAssembly.cs" />
+    <Compile Include="Components\DotConstructor.cs" />
+    <Compile Include="Components\DotField.cs" />
+    <Compile Include="Components\DotMethod.cs" />
+    <Compile Include="Components\DotMethodBase.cs" />
+    <Compile Include="Components\DotType.cs" />
+    <Compile Include="Framework\FileMethods.cs" />
+    <Compile Include="Framework\IntMethods.cs" />
+    <Compile Include="Framework\ListMethods.cs" />
+    <Compile Include="Framework\ObjectMethods.cs" />
+    <Compile Include="Framework\StringMethods.cs" />
     <Compile Include="GarbageCollector.cs" />
     <Compile Include="Heap.cs" />
-    <Compile Include="HeapObject.cs" />
-    <Compile Include="ILInstruction.cs" />
-    <Compile Include="ILParser.cs" />
+    <Compile Include="ObjectInstance.cs" />
+    <Compile Include="Msil\ILInstruction.cs" />
+    <Compile Include="Msil\ILParser.cs" />
     <Compile Include="Interpreter.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="Runtime.cs" />
+    <Compile Include="StackFrame.cs" />
   </ItemGroup>
+  <ItemGroup />
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
        Other similar extension points exist, see Microsoft.Common.targets.

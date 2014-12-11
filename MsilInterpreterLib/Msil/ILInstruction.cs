@@ -1,8 +1,9 @@
 ﻿using System;
+using System.Linq;
 using System.Reflection;
 using System.Reflection.Emit;
 
-namespace MsilInterpreterLib
+namespace MsilInterpreterLib.Msil
 {
     internal sealed class ILInstruction
     {
@@ -30,49 +31,48 @@ namespace MsilInterpreterLib
                     var fieldOp = (FieldInfo) Operand;
                     return string.Format("{0} {1} {2}::{3}",
                         result,
-                        fieldOp.FieldType.ToString(),
-                        fieldOp.ReflectedType.ToString(),
+                        fieldOp.FieldType,
+                        fieldOp.ReflectedType,
                         fieldOp.Name);                                        
                 case OperandType.InlineMethod:
                     var methodOp = Operand as MethodInfo;
                     if (methodOp != null)
                     {
-                        return string.Format("{0} {1}{2} {3}::{4}()",
+                        return string.Format("{0} {1}{2} {3}.{4}({5})",
                             result,
                             !methodOp.IsStatic ? "instance " : "",
-                            methodOp.ReturnType.ToString(),
-                            methodOp.ReflectedType.ToString(),
-                            methodOp.Name);
+                            methodOp.ReturnType,
+                            methodOp.ReflectedType,
+                            methodOp.Name,
+                            string.Join(",", methodOp.GetParameters().Select(p => p.ParameterType)));
                     }
-                    else
-                    {
-                        var ctorOp = Operand as ConstructorInfo;
-                        return string.Format("{0} {1} {2}::{3}()",
-                            result,
-                            !ctorOp.IsStatic ? "instance " : "",
-                            ctorOp.ReflectedType.ToString(),
-                            ctorOp.Name);
-                    }                    
+                    var ctorOp = Operand as ConstructorInfo;
+                    return string.Format("{0} {1} {2}.{3}({4})",
+                        result,
+                        !ctorOp.IsStatic ? "instance " : "",
+                        ctorOp.ReflectedType,
+                        ctorOp.Name,
+                        string.Join(",", ctorOp.GetParameters().Select(p => p.ParameterType)));
                 case OperandType.ShortInlineBrTarget:
                 case OperandType.InlineBrTarget:
                     return string.Format("{0} {1:D4}", result, (int)Operand);                                        
                 case OperandType.InlineType:
-                    return result + " " + Operand.ToString();
+                    return result + " " + Operand;
                 case OperandType.InlineString:
                     if (Operand.ToString() == "\r\n")
                         return result + " \"\\r\\n\"";
-                    else
-                        return result + " \"" + Operand + "\"";                    
+                    return result + " \"" + Operand + "\"";
                 case OperandType.ShortInlineVar:
-                    return result + Operand.ToString();
+                    return result + Operand;
                 case OperandType.InlineI:
                 case OperandType.InlineI8:
                 case OperandType.InlineR:
                 case OperandType.ShortInlineI:
                 case OperandType.ShortInlineR:
-                    return result + " " + Operand.ToString();
+                    return result + " " + Operand;
                 case OperandType.InlineTok:
-                    return result + (Operand as Type)?.FullName ?? " not supported";
+                    var type = Operand as Type;
+                    return result + (type == null ? " not supported" : type.FullName);
                 default:
                     return result + " not supported";
             }
