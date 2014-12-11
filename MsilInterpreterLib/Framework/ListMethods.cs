@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using MsilInterpreterLib.Components;
 
 namespace MsilInterpreterLib.Framework
@@ -14,44 +15,57 @@ namespace MsilInterpreterLib.Framework
             var instanceRef = (Guid)interpreter.CurrentStackFrame.Arguments[0];
             var capacity = (int)interpreter.CurrentStackFrame.Arguments[1];
             var listInstance = interpreter.GetFromHeap(instanceRef);
-            listInstance["Values"] = new object[capacity];
-            listInstance["Capacity"] = capacity;
-            listInstance["Count"] = 0;
-        }
-    }
-
-    internal sealed class ListAdd : DotMethod
-    {
-        public ListAdd(DotType declaringType) : base("Add", declaringType, false, typeof(void), new []{ typeof(object) }, null)
-        {
-        }
-
-        public override void Execute(Interpreter interpreter)
-        {
-            throw new NotImplementedException();
+            listInstance["Values"] = new List<object>(capacity);
         }
     }
 
     internal sealed class ListAddRange : DotMethod
     {
-        public ListAddRange(DotType declaringType) : base("AddRange", declaringType, false, typeof(void), new[] { typeof(object) }, null)
+        public ListAddRange(DotType declaringType) : base("AddRange", declaringType, false, typeof(void), new[] { typeof(IEnumerable<object>) }, null)
         {
         }
 
         public override void Execute(Interpreter interpreter)
         {
+            /*var instanceRef = (Guid)interpreter.CurrentStackFrame.Arguments[0];
+            var listInstance = interpreter.GetFromHeap(instanceRef);
+            var index = (int)interpreter.CurrentStackFrame.Arguments[1];
+            var valueToInsert = interpreter.CurrentStackFrame.Arguments[2];
+            var list = listInstance["Values"] as List<object>;
+            list.Insert(index, valueToInsert);*/
             throw new NotImplementedException();
+        }
+    }
+
+    internal sealed class ListGetCount : DotMethod
+    {
+        public ListGetCount(DotType declaringType) : base("get_Count", declaringType, false, typeof(object), null, null)
+        {
+        }
+
+        public override void Execute(Interpreter interpreter)
+        {
+            var instanceRef = (Guid)interpreter.CurrentStackFrame.Arguments[0];
+            var listInstance = interpreter.GetFromHeap(instanceRef);
+            var list = listInstance["Count"] as List<object>;
+            interpreter.PushToStack(list.Count);
         }
     }
 
     internal sealed class ListGetRange : DotMethod
     {
-        public ListGetRange(DotType declaringType) : base("GetRange", declaringType, false, typeof(void), new[] { typeof(object) }, null)
+        public ListGetRange(DotType declaringType) : base("GetRange", declaringType, false, typeof(List<object>), new[] { typeof(int), typeof(int) }, null)
         {
         }
 
         public override void Execute(Interpreter interpreter)
         {
+            /*var instanceRef = (Guid)interpreter.CurrentStackFrame.Arguments[0];
+            var listInstance = interpreter.GetFromHeap(instanceRef);
+            var index = (int)interpreter.CurrentStackFrame.Arguments[1];
+            var valueToInsert = interpreter.CurrentStackFrame.Arguments[2];
+            var list = listInstance["Values"] as List<object>;
+            list.Insert(index, valueToInsert);*/
             throw new NotImplementedException();
         }
     }
@@ -64,7 +78,12 @@ namespace MsilInterpreterLib.Framework
 
         public override void Execute(Interpreter interpreter)
         {
-            throw new NotImplementedException();
+            var instanceRef = (Guid)interpreter.CurrentStackFrame.Arguments[0];
+            var listInstance = interpreter.GetFromHeap(instanceRef);
+            var searchFor = interpreter.CurrentStackFrame.Arguments[1];
+            var list = listInstance["Values"] as List<object>;
+            int index = list.IndexOf(searchFor);
+            interpreter.PushToStack(index);
         }
     }
 
@@ -88,7 +107,12 @@ namespace MsilInterpreterLib.Framework
 
         public override void Execute(Interpreter interpreter)
         {
-            throw new NotImplementedException();
+            var instanceRef = (Guid)interpreter.CurrentStackFrame.Arguments[0];
+            var listInstance = interpreter.GetFromHeap(instanceRef);
+            var index = (int)interpreter.CurrentStackFrame.Arguments[1];
+            var valueToInsert = interpreter.CurrentStackFrame.Arguments[2];
+            var list = listInstance["Values"] as List<object>;
+            list.Insert(index, valueToInsert);
         }
     }
 
@@ -100,19 +124,28 @@ namespace MsilInterpreterLib.Framework
 
         public override void Execute(Interpreter interpreter)
         {
-            throw new NotImplementedException();
+            var instanceRef = (Guid)interpreter.CurrentStackFrame.Arguments[0];
+            var listInstance = interpreter.GetFromHeap(instanceRef);
+            int index = (int)interpreter.CurrentStackFrame.Arguments[1];
+            var list = listInstance["Values"] as List<object>;
+            list.RemoveAt(index);
         }
     }
 
     internal sealed class ListRemoveRange : DotMethod
     {
-        public ListRemoveRange(DotType declaringType) : base("RemoveRange", declaringType, false, typeof(void), new[] { typeof(object) }, null)
+        public ListRemoveRange(DotType declaringType) : base("RemoveRange", declaringType, false, typeof(void), new[] { typeof(int), typeof(int) }, null)
         {
         }
 
         public override void Execute(Interpreter interpreter)
         {
-            throw new NotImplementedException();
+            var instanceRef = (Guid)interpreter.CurrentStackFrame.Arguments[0];
+            var listInstance = interpreter.GetFromHeap(instanceRef);
+            int index = (int)interpreter.CurrentStackFrame.Arguments[1];
+            int count = (int)interpreter.CurrentStackFrame.Arguments[2];
+            var list = listInstance["Values"] as List<object>;
+            list.RemoveRange(index, count);
         }
     }
 }

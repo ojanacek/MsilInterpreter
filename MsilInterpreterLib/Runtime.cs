@@ -116,17 +116,12 @@ namespace MsilInterpreterLib
             fwAssembly.Types.Add(arrayType);
 
             var listType = new DotType("List`1", fwAssembly);
-            listType.Fields = new List<DotField>
-            {
-                new DotField("Values", listType),
-                new DotField("Capacity", listType),
-                new DotField("Count", listType)
-            };
+            listType.Fields.Add(new DotField("Values", listType));
             listType.Constructors.Add(new ListCapacityCtor(listType));
             listType.Methods = new List<DotMethod>
             {
-                new ListAdd(listType),
                 new ListAddRange(listType),
+                new ListGetCount(listType),
                 new ListGetRange(listType),
                 new ListIndexOf(listType),
                 new ListIndexer(listType),
