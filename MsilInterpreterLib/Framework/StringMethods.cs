@@ -3,9 +3,31 @@ using MsilInterpreterLib.Components;
 
 namespace MsilInterpreterLib.Framework
 {
-    internal sealed class StringJoin : DotMethod
+    internal sealed class StringConcat3 : DotMethod
     {
-        public StringJoin(DotType type) : base("Join", type, true, typeof(string), null, null)
+        public StringConcat3(DotType type) : base("Concat", type, true, typeof(string), new []{ typeof(string), typeof(string), typeof(string) }, null)
+        {
+        }
+
+        public override void Execute(Interpreter interpreter)
+        {
+            var result = "";
+            for (int i = 0; i < 3; i++)
+            {
+                var strRef = interpreter.CurrentStackFrame.Arguments[i];
+                var str = interpreter.GetFromHeap((Guid) strRef)["Value"].ToString();
+                result += str;
+            }
+            ObjectInstance instance;
+            var resultRef = interpreter.CreateObjectInstance(interpreter.LookUpType(typeof(string)), out instance);
+            instance["Value"] = result;
+            interpreter.PushToStack(resultRef);
+        }
+    }
+
+    internal sealed class StringFormat : DotMethod
+    {
+        public StringFormat(DotType type) : base("Format", type, true, typeof(string), null, null)
         {
         }
 
@@ -15,9 +37,9 @@ namespace MsilInterpreterLib.Framework
         }
     }
 
-    internal sealed class StringFormat : DotMethod
+    internal sealed class StringJoin : DotMethod
     {
-        public StringFormat(DotType type) : base("Format", type, true, typeof(string), null, null)
+        public StringJoin(DotType type) : base("Join", type, true, typeof(string), null, null)
         {
         }
 

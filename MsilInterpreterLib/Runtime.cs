@@ -97,6 +97,7 @@ namespace MsilInterpreterLib
             stringType.Fields.Add(new DotField("Value", stringType));
             stringType.Methods = new List<DotMethod>
             {
+                new StringConcat3(stringType),
                 new StringFormat(stringType),
                 new StringJoin(stringType),
                 new StringSplit(stringType)
