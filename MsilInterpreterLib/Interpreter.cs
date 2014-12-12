@@ -197,6 +197,14 @@ namespace MsilInterpreterLib
                     PushToStack(array[index]);
                     break;
                 }
+                case "ldelema":
+                {
+                    int index = (int) PopFromStack();
+                    var arrayRef = (Guid) PopFromStack();
+                    var array = GetFromHeap(arrayRef)["Values"] as Guid[];
+                    PushToStack(array[index]);
+                    break;
+                }
                 case "ldfld":
                 {
                     var instanceRef = PopFromStack();
@@ -292,6 +300,7 @@ namespace MsilInterpreterLib
                 case "call":
                 case "callvirt":
                 {
+                    // TODO: problem with an abstract method that has no body
                     var method = LookUpMethod(instruction.Operand as MethodBase);
                     var nestedInterp = new Interpreter(Runtime);
                     nestedInterp.Execute(method);
