@@ -213,6 +213,11 @@ namespace MsilInterpreterLib
                     PushToStack(instance[fieldName]);
                     break;
                 }
+                case "ldind.ref":
+                {
+                    // address is already on the stack
+                    break;
+                }
                 case "ldlen":
                 {
                     var arrayRef = PopFromStack();
@@ -274,6 +279,14 @@ namespace MsilInterpreterLib
                     var instance = GetFromHeap((Guid)instanceRef);
                     var fieldName = (instruction.Operand as FieldInfo).Name;
                     instance[fieldName] = newFieldValue;
+                    break;
+                }
+                case "stind.ref":
+                {
+                    var value = PopFromStack();
+                    var objectRef = (Guid) PopFromStack();
+                    var instance = GetFromHeap(objectRef);
+                    instance["Value"] = value;
                     break;
                 }
                 case "stloc.0": PopFromStackToLocal(0); break;
@@ -469,7 +482,7 @@ namespace MsilInterpreterLib
 
         #region Method Tables lookups
 
-        private DotType LookUpType(Type type)
+        internal DotType LookUpType(Type type)
         {
             var moduleName = type.Module.Name.Substring(0, type.Module.Name.Length - 4); // removes a file extension .exe or .dll
 
@@ -484,7 +497,7 @@ namespace MsilInterpreterLib
             return dotType;
         }
 
-        private DotMethodBase LookUpMethod(MethodBase mb)
+        internal DotMethodBase LookUpMethod(MethodBase mb)
         {
             var type = LookUpType(mb.DeclaringType);
 
