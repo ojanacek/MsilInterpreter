@@ -7,4 +7,4 @@ But of course, since it's basically .NET runtime running on the actual .NET runt
 I could implement JVM subset instead, but I didn't consider it as much benefical for me back then.
 
 To prove the runtime abilities we had to choose a problem like a B+ tree collection, SAT solver, etc. that we would implement in the high-level language and interpret in our VM.
-There were additional requirements like implementing exceptions, heap, garbage collector and whatever we can do (threads, JIT, ...). I had no time to do some advanced stuff, not to mention optimizations.
+There were additional requirements like implementing exceptions, heap, garbage collector and whatever we can do (threads, JIT, ...). I had no time to do any advanced stuff, not to mention optimizations.
