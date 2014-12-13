@@ -313,7 +313,6 @@ namespace MsilInterpreterLib
                 case "call":
                 case "callvirt":
                 {
-                    // TODO: problem with an abstract method that has no body
                     var method = LookUpMethod(instruction.Operand as MethodBase);
                     var nestedInterp = new Interpreter(Runtime);
                     nestedInterp.Execute(method);
@@ -368,7 +367,7 @@ namespace MsilInterpreterLib
                 instanceRef = PopFromStack();
 
             var arguments = new List<object>();
-            foreach (var param in callee.ParametersTypes)
+            for (int i = 0; i < callee.ParametersTypes.Length; i++)
             {
                 arguments.Add(PopFromStack());
             }
@@ -499,7 +498,15 @@ namespace MsilInterpreterLib
 
         internal DotMethodBase LookUpMethod(MethodBase mb)
         {
-            var type = LookUpType(mb.DeclaringType);
+            DotType type;
+            if (mb.IsAbstract)
+            {
+                type = PeekCurrentInstanceType(); // find the method on a derived type instead
+            }
+            else
+            {
+                type = LookUpType(mb.DeclaringType);
+            }
 
             if (mb.IsConstructor)
             {
@@ -511,6 +518,13 @@ namespace MsilInterpreterLib
             var method = type.Methods.FirstOrDefault(m => m.Name == mb.Name);
             if (method == null) throw new NotSupportedException("Not supported method " + mb.Name + " in type " + mb.DeclaringType.Name + " in assembly " + mb.Module.Name);
             return method;
+        }
+
+        private DotType PeekCurrentInstanceType()
+        {
+            var objRef = CurrentStackFrame.Stack.Peek();
+            var objInstance = GetFromHeap((Guid) objRef);
+            return objInstance.TypeHandler;
         }
 
         #endregion
