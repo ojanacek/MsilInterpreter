@@ -21,19 +21,21 @@ namespace MsilInterpreterLib.Framework
 
     internal sealed class ListAddRange : DotMethod
     {
-        public ListAddRange(DotType declaringType) : base("AddRange", declaringType, false, typeof(void), new[] { typeof(IEnumerable<object>) }, null)
+        public ListAddRange(DotType declaringType) : base("AddRange", declaringType, false, typeof(void), new[] { typeof(List<object>) }, null)
         {
         }
 
         public override void Execute(Interpreter interpreter)
         {
-            /*var instanceRef = (Guid)interpreter.CurrentStackFrame.Arguments[0];
+            var instanceRef = (Guid)interpreter.CurrentStackFrame.Arguments[0];
             var listInstance = interpreter.GetFromHeap(instanceRef);
-            var index = (int)interpreter.CurrentStackFrame.Arguments[1];
-            var valueToInsert = interpreter.CurrentStackFrame.Arguments[2];
             var list = listInstance["Values"] as List<object>;
-            list.Insert(index, valueToInsert);*/
-            throw new NotImplementedException();
+
+            var rangeRef = (Guid)interpreter.CurrentStackFrame.Arguments[1];
+            var rangeInstance = interpreter.GetFromHeap(rangeRef);
+            var range = rangeInstance["Values"] as List<object>;
+            
+            list.AddRange(range);
         }
     }
 
