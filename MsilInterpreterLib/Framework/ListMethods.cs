@@ -76,13 +76,17 @@ namespace MsilInterpreterLib.Framework
 
         public override void Execute(Interpreter interpreter)
         {
-            /*var instanceRef = (Guid)interpreter.CurrentStackFrame.Arguments[0];
+            var instanceRef = (Guid)interpreter.CurrentStackFrame.Arguments[0];
             var listInstance = interpreter.GetFromHeap(instanceRef);
             var index = (int)interpreter.CurrentStackFrame.Arguments[1];
-            var valueToInsert = interpreter.CurrentStackFrame.Arguments[2];
+            var count = (int)interpreter.CurrentStackFrame.Arguments[2];
             var list = listInstance["Values"] as List<object>;
-            list.Insert(index, valueToInsert);*/
-            throw new NotImplementedException();
+
+            var range = list.GetRange(index, count);
+            ObjectInstance rangeInstance;
+            var rangeReference = interpreter.CreateObjectInstance(listInstance.TypeHandler, out rangeInstance);
+            rangeInstance["Values"] = range;
+            interpreter.PushToStack(rangeReference);
         }
     }
 
