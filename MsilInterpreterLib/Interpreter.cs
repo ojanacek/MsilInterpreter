@@ -22,8 +22,6 @@ namespace MsilInterpreterLib
 
         public void Execute(DotMethodBase method)
         {
-            PushToCallStack(method);
-
             if (method.Body.Count == 0)
                 method.Execute(this);
             else
@@ -313,18 +311,38 @@ namespace MsilInterpreterLib
                 case "call":
                 case "callvirt":
                 {
-                    var method = LookUpMethod(instruction.Operand as MethodBase);
+                    var callee = LookUpMethod(instruction.Operand as MethodBase);
+                    var args = PopArgumentsFromStack(callee);
+                    if (!callee.IsStatic)
+                    {
+                        var instanceRef = PopFromStack();
+                        args.Insert(0, instanceRef);
+
+                        var method = callee as DotMethod;
+                        if (method != null && method.IsVirtual)
+                        {
+                            var instance = GetFromHeap((Guid)instanceRef);
+                            callee = LookUpVirtualMethod(instance.TypeHandler, method);
+                        }
+                    }
+
+                    PushToCallStack(callee, args);
                     var nestedInterp = new Interpreter(Runtime);
-                    nestedInterp.Execute(method);
+                    nestedInterp.Execute(callee);
                     break;
                 }
                 case "newobj":
                 {
                     var ctor = LookUpMethod(instruction.Operand as ConstructorInfo);
                     var newObjReference = (ctor as DotConstructor).Invoke(this);
-                    PushToStack(newObjReference);
+
+                    var args = PopArgumentsFromStack(ctor);
+                    args.Insert(0, newObjReference);
+
+                    PushToCallStack(ctor, args);
                     var nestedInterp = new Interpreter(Runtime);
                     nestedInterp.Execute(ctor);
+
                     PushToStack(newObjReference);
                     break;
                 }
@@ -355,31 +373,10 @@ namespace MsilInterpreterLib
 
         #region Call stack
 
-        private void PushToCallStack(DotMethodBase callee)
+        private void PushToCallStack(DotMethodBase callee, List<object> arguments)
         {
             CheckFullCallStack();
-
-            var currentlyExecutingMethod = CurrentStackFrame.CurrentMethod;
-            var newFrame = new StackFrame(currentlyExecutingMethod, callee);
-
-            object instanceRef = null;
-            if (!callee.IsStatic)
-                instanceRef = PopFromStack();
-
-            var arguments = new List<object>();
-            for (int i = 0; i < callee.ParametersTypes.Length; i++)
-            {
-                arguments.Add(PopFromStack());
-            }
-
-            if (instanceRef != null)
-            {
-                arguments.Insert(0, instanceRef); // instance methods and ctors have the first parameter (an instance they are being called on) hidden
-                if (arguments.Count > 1)
-                    VerifyArgumentOrder(arguments, callee);
-            }
-
-            newFrame.Arguments = arguments;
+            var newFrame = new StackFrame(CurrentStackFrame.CurrentMethod, callee) { Arguments = arguments };
             Runtime.CallStack.Push(newFrame);
         }
 
@@ -388,20 +385,6 @@ namespace MsilInterpreterLib
             // limited depth of the call stack instead of the stack size, just to make a point to throw a StackOverflow exception
             if (Runtime.CallStack.Count == 25)
                 throw new StackOverflowException("There's too many nested calls (25 is the limit).");
-        }
-
-        private void VerifyArgumentOrder(List<object> arguments, DotMethodBase callee)
-        {
-            // sometimes arguments for instance methods and ctors are reversed, check this anomaly ... TODO: probably could be solved another way, this is a quick fix
-            if (!(arguments[0] is Guid))
-            {
-                arguments.Reverse();
-                return;
-            }
-
-            var instance = GetFromHeap((Guid) arguments[0]);
-            if (instance.TypeHandler != callee.DeclaringType)
-                arguments.Reverse();
         }
 
         private void UnwindCallStack()
@@ -421,6 +404,16 @@ namespace MsilInterpreterLib
         #endregion
 
         #region Current method call stack and locals
+
+        private List<object> PopArgumentsFromStack(DotMethodBase method)
+        {
+            var args = new object[method.ParametersCount];
+            for (int i = method.ParametersCount - 1; i >= 0; i--)
+            {
+                args[i] = PopFromStack();
+            }
+            return new List<object>(args);
+        } 
 
         internal void PushToStack(object value)
         {
@@ -498,16 +491,7 @@ namespace MsilInterpreterLib
 
         internal DotMethodBase LookUpMethod(MethodBase mb)
         {
-            DotType type;
-            if (mb.IsAbstract)
-            {
-                type = PeekCurrentInstanceType(); // find the method on a derived type instead
-            }
-            else
-            {
-                type = LookUpType(mb.DeclaringType);
-            }
-
+            var type = LookUpType(mb.DeclaringType);
             if (mb.IsConstructor)
             {
                 var ctor = type.Constructors.FirstOrDefault(c => c.ParametersTypes.SequenceEqual(mb.GetParameters().Select(p => p.ParameterType)));
@@ -520,11 +504,16 @@ namespace MsilInterpreterLib
             return method;
         }
 
-        private DotType PeekCurrentInstanceType()
+        private DotMethod LookUpVirtualMethod(DotType declaringDerivedType, DotMethod virtualMethod)
         {
-            var objRef = CurrentStackFrame.Stack.Peek();
-            var objInstance = GetFromHeap((Guid) objRef);
-            return objInstance.TypeHandler;
+            var overridingMethod = declaringDerivedType.Methods.FirstOrDefault(m => m.Name == virtualMethod.Name);
+            if (overridingMethod != null)
+            {
+                if (virtualMethod.IsAbstract)
+                    return overridingMethod;
+            }
+
+            return virtualMethod;
         }
 
         #endregion

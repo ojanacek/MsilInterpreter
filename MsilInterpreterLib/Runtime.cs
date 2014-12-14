@@ -55,8 +55,8 @@ namespace MsilInterpreterLib
 
             var interpreter = new Interpreter(this);
             var input = interpreter.CreateRefTypeArray(args);
-            var initStackFrame = new StackFrame(null, null);
-            initStackFrame.Stack.Push(input);
+            var initStackFrame = new StackFrame(null, entryPoint);
+            initStackFrame.Arguments = new List<object> { input };
             CallStack.Push(initStackFrame);
             interpreter.Execute(entryPoint);
         }
@@ -71,15 +71,31 @@ namespace MsilInterpreterLib
         private List<DotConstructor> FindConstructors(Type type, DotType inType)
         {
             return type.GetConstructors(BindingFlags.Instance | BindingFlags.NonPublic | BindingFlags.Static | BindingFlags.Public)
-                       .Select(m => new DotConstructor(inType, m.IsStatic, m.GetParameters().Select(p => p.ParameterType).ToArray(), ilParser.ParseILFromMethod(m).ToList()))
-                       .ToList();
+                       .Select(m => new DotConstructor
+                        (
+                           inType, 
+                           m.IsStatic, 
+                           m.GetParameters().Select(p => p.ParameterType).ToArray(), 
+                           ilParser.ParseILFromMethod(m).ToList())
+                        ).ToList();
         }
 
         private List<DotMethod> FindMethods(Type type, DotType inType)
         {
             return type.GetMethods(BindingFlags.Instance | BindingFlags.NonPublic | BindingFlags.Static | BindingFlags.Public)
-                       .Select(m => new DotMethod(m.Name, inType, m.IsStatic, m.ReturnType, m.GetParameters().Select(p => p.ParameterType).ToArray(), ilParser.ParseILFromMethod(m).ToList()))
-                       .ToList();
+                       .Select(m => new DotMethod
+                        (
+                           m.Name, 
+                           inType, 
+                           m.IsStatic, 
+                           m.ReturnType, 
+                           m.GetParameters().Select(p => p.ParameterType).ToArray(), 
+                           ilParser.ParseILFromMethod(m).ToList())
+                           {
+                               IsAbstract = m.IsAbstract,
+                               IsVirtual = m.IsVirtual
+                           }
+                        ).ToList();
         }
 
         /// <summary>

@@ -15,6 +15,7 @@ namespace MsilInterpreterLib.Components
         public DotType DeclaringType { get { return declaringType; } }
         public bool IsStatic { get { return isStatic; } }
         public ReadOnlyCollection<ILInstruction> Body { get { return body.AsReadOnly(); } }
+        public int ParametersCount { get { return parametersTypes.Length; } }
         public Type[] ParametersTypes { get { return parametersTypes; } }
 
         protected DotMethodBase(DotType declaringType, bool isStatic, Type[] parametersTypes, IEnumerable<ILInstruction> body)
