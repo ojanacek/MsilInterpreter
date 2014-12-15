@@ -158,6 +158,10 @@ namespace MsilInterpreterLib
             };
             fwAssembly.Types.Add(fileType);
 
+            var enviType = new DotType("Environment", fwAssembly);
+            enviType.Methods.Add(new EnvironmentGetNewLine(enviType));
+            fwAssembly.Types.Add(enviType);
+
             loadedAssemblies.Add(fwAssembly);
         }
     }

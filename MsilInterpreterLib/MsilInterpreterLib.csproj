@@ -48,6 +48,7 @@
     <Compile Include="Components\DotMethod.cs" />
     <Compile Include="Components\DotMethodBase.cs" />
     <Compile Include="Components\DotType.cs" />
+    <Compile Include="Framework\EnvironmentMethods.cs" />
     <Compile Include="Framework\FileMethods.cs" />
     <Compile Include="Framework\IntMethods.cs" />
     <Compile Include="Framework\ListMethods.cs" />
