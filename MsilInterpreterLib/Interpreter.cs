@@ -200,6 +200,11 @@ namespace MsilInterpreterLib
                     int index = (int) PopFromStack();
                     var arrayRef = (Guid) PopFromStack();
                     var array = GetFromHeap(arrayRef)["Values"] as Guid[];
+                    if (array[index] == Guid.Empty)
+                    {
+                        ObjectInstance instance;
+                        array[index] = CreateObjectInstance(LookUpType(instruction.Operand as Type), out instance);
+                    }
                     PushToStack(array[index]);
                     break;
                 }
@@ -319,11 +324,14 @@ namespace MsilInterpreterLib
                         var instanceRef = PopFromStack();
                         args.Insert(0, instanceRef);
 
-                        var method = callee as DotMethod;
-                        if (method != null && method.IsVirtual)
+                        if (instruction.Code.Name == "callvirt") // a virtual method can be called non-virtually with call (e.g. base.ToString()) and then it would cause StackOverflow without this check
                         {
-                            var instance = GetFromHeap((Guid)instanceRef);
-                            callee = LookUpVirtualMethod(instance.TypeHandler, method);
+                            var method = callee as DotMethod;
+                            if (method != null && method.IsVirtual)
+                            {
+                                var instance = GetFromHeap((Guid)instanceRef);
+                                callee = LookUpVirtualMethod(instance.TypeHandler, method);
+                            }
                         }
                     }
 
