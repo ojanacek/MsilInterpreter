@@ -138,8 +138,15 @@ namespace MsilInterpreterLib
                 case "ldarg.1":
                 case "ldarg.2":
                 case "ldarg.3":
+                case "ldarg.s":
                 {
-                    var argPosition = Convert.ToInt32(instruction.Code.Name.Split('.')[1]);
+                    var index = instruction.Code.Name.Split('.')[1];
+                    int argPosition;
+                    if (index == "s")
+                        argPosition = (byte)instruction.Operand;
+                    else
+                        argPosition = Convert.ToInt32(index);
+
                     var paramPosition = argPosition;
 
                     if (!CurrentStackFrame.CurrentMethod.IsStatic)
