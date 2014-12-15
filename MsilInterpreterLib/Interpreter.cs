@@ -228,6 +228,7 @@ namespace MsilInterpreterLib
                 case "ldloc.2": PushLocalToStack(2); break;
                 case "ldloc.3": PushLocalToStack(3); break;
                 case "ldloc.s": PushLocalToStack((byte) instruction.Operand); break;
+                case "ldnull": PushToStack(null); break;
                 case "ldstr":
                 {
                     ObjectInstance stringInstance;
