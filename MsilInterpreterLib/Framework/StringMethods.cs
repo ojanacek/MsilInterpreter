@@ -65,7 +65,7 @@ namespace MsilInterpreterLib.Framework
 
     internal sealed class StringJoin : DotMethod
     {
-        public StringJoin(DotType type) : base("Join", type, true, typeof(string), new []{ typeof(string), typeof(List<object>) }, null)
+        public StringJoin(DotType type) : base("Join", type, true, typeof(string), new []{ typeof(string), typeof(IEnumerable<object>) }, null)
         {
         }
 
@@ -74,14 +74,36 @@ namespace MsilInterpreterLib.Framework
             var separatorRef = interpreter.CurrentStackFrame.Arguments[0];
             var separator = interpreter.GetFromHeap((Guid) separatorRef)["Value"] as string;
             var valuesRef = interpreter.CurrentStackFrame.Arguments[1];
-            var values = interpreter.GetFromHeap((Guid)valuesRef)["Values"] as List<object>;
+            var result = "";
 
-            if (values[0] is Guid)
+            var listValues = interpreter.GetFromHeap((Guid) valuesRef)["Values"] as List<object>;
+            if (listValues != null)
             {
-                values = values.Select(v => interpreter.GetFromHeap((Guid) v)["Value"]).ToList();
-            }
+                if (listValues[0] is Guid)
+                {
+                    listValues = listValues.Select(v => interpreter.GetFromHeap((Guid)v)["Value"]).ToList();
+                }
 
-            var result = string.Join(separator, values);
+                result = string.Join(separator, listValues);
+            }
+            else
+            {
+                var arrayValues = interpreter.GetFromHeap((Guid)valuesRef)["Values"] as object[];
+                if (arrayValues != null)
+                {
+                    result = string.Join(separator, arrayValues);
+                }
+                else
+                {
+                    var arrayRefs = interpreter.GetFromHeap((Guid)valuesRef)["Values"] as Guid[];
+                    if (arrayRefs != null)
+                    {
+                        arrayValues = arrayRefs.Where(v => v != Guid.Empty).Select(v => interpreter.GetFromHeap(v)["Value"]).ToArray();
+                        result = string.Join(separator, arrayValues);
+                    }
+                }
+            }
+            
             ObjectInstance instance;
             var resultRef = interpreter.CreateObjectInstance(interpreter.LookUpType(typeof(string)), out instance);
             instance["Value"] = result;
