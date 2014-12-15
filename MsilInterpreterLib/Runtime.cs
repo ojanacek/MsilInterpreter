@@ -139,6 +139,7 @@ namespace MsilInterpreterLib
             listType.Constructors.Add(new ListCapacityCtor(listType));
             listType.Methods = new List<DotMethod>
             {
+                new ListAdd(listType),
                 new ListAddRange(listType),
                 new ListGetCount(listType),
                 new ListGetItem(listType),

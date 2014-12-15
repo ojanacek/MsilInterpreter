@@ -19,6 +19,22 @@ namespace MsilInterpreterLib.Framework
         }
     }
 
+    internal sealed class ListAdd : DotMethod
+    {
+        public ListAdd(DotType declaringType) : base("Add", declaringType, false, typeof(void), new[] { typeof(object) }, null)
+        {
+        }
+
+        public override void Execute(Interpreter interpreter)
+        {
+            var instanceRef = (Guid)interpreter.CurrentStackFrame.Arguments[0];
+            var listInstance = interpreter.GetFromHeap(instanceRef);
+            var valueToInsert = interpreter.CurrentStackFrame.Arguments[1];
+            var list = listInstance["Values"] as List<object>;
+            list.Add(valueToInsert);
+        }
+    }
+
     internal sealed class ListAddRange : DotMethod
     {
         public ListAddRange(DotType declaringType) : base("AddRange", declaringType, false, typeof(void), new[] { typeof(List<object>) }, null)
