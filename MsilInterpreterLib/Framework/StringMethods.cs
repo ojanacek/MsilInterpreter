@@ -5,19 +5,33 @@ using MsilInterpreterLib.Components;
 
 namespace MsilInterpreterLib.Framework
 {
-    internal sealed class StringConcat3 : DotMethod
+    internal sealed class StringConcat2 : StringConcat
     {
-        public StringConcat3(DotType type) : base("Concat", type, true, typeof(string), new []{ typeof(string), typeof(string), typeof(string) }, null)
+        public StringConcat2(DotType type) : base(type, new[] { typeof(string), typeof(string) })
+        {
+        }
+    }
+
+    internal sealed class StringConcat3 : StringConcat
+    {
+        public StringConcat3(DotType type) : base(type, new []{ typeof(string), typeof(string), typeof(string) })
+        {
+        }
+    }
+
+    internal abstract class StringConcat : DotMethod
+    {
+        protected StringConcat(DotType type, Type[] parametersTypes) : base("Concat", type, true, typeof(string), parametersTypes, null)
         {
         }
 
         public override void Execute(Interpreter interpreter)
         {
             var result = "";
-            for (int i = 0; i < 3; i++)
+            for (int i = 0; i < ParametersCount; i++)
             {
                 var strRef = interpreter.CurrentStackFrame.Arguments[i];
-                var strValue = interpreter.GetFromHeap((Guid) strRef)["Value"];
+                var strValue = interpreter.GetFromHeap((Guid)strRef)["Value"];
                 var str = strValue == null ? "" : strValue.ToString();
                 result += str;
             }
@@ -30,13 +44,22 @@ namespace MsilInterpreterLib.Framework
 
     internal sealed class StringFormat : DotMethod
     {
-        public StringFormat(DotType type) : base("Format", type, true, typeof(string), null, null)
+        public StringFormat(DotType type) : base("Format", type, true, typeof(string), new []{ typeof(string), typeof(string) }, null)
         {
         }
 
         public override void Execute(Interpreter interpreter)
         {
-            throw new NotImplementedException();
+            var formatRef = interpreter.CurrentStackFrame.Arguments[0];
+            var format = interpreter.GetFromHeap((Guid) formatRef)["Value"] as string;
+            var valueRef = interpreter.CurrentStackFrame.Arguments[1];
+            var value = interpreter.GetFromHeap((Guid) valueRef)["Value"] as string; // simplified scenario, just one string instead of many objects
+
+            var result = string.Format(format, value);
+            ObjectInstance instance;
+            var reference = interpreter.CreateObjectInstance(interpreter.LookUpType(typeof (string)), out instance);
+            instance["Value"] = result;
+            interpreter.PushToStack(reference);
         }
     }
 

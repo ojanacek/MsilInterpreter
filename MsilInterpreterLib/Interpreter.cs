@@ -508,8 +508,8 @@ namespace MsilInterpreterLib
                 return ctor;
             }
 
-            var method = type.Methods.FirstOrDefault(m => m.Name == mb.Name);
-            if (method == null) throw new NotSupportedException("Not supported method " + mb.Name + " in type " + mb.DeclaringType.Name + " in assembly " + mb.Module.Name);
+            var method = type.Methods.FirstOrDefault(m => m.Name == mb.Name && m.ParametersCount == mb.GetParameters().Length);
+            if (method == null) throw new NotSupportedException("Not supported method " + mb + " in type " + mb.DeclaringType.Name + " in assembly " + mb.Module.Name);
             return method;
         }
 
