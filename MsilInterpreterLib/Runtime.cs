@@ -107,6 +107,7 @@ namespace MsilInterpreterLib
 
             var objectType = new DotType("Object", fwAssembly);
             objectType.Constructors.Add(new ObjectCtor(objectType));
+            objectType.Methods.Add(new ObjectToString(objectType));
             fwAssembly.Types.Add(objectType);
 
             var stringType = new DotType("String", fwAssembly);
