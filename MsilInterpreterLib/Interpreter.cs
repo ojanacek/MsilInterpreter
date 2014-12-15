@@ -272,6 +272,7 @@ namespace MsilInterpreterLib
                     break;
                 }
                 case "nop": break;
+                case "pop": PopFromStack(); break;
                 case "stelem.i1":
                 case "stelem.i2":
                 case "stelem.i4":
