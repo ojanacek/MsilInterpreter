@@ -13,7 +13,7 @@ namespace MsilInterpreterLib
     {
         private readonly ILParser ilParser = new ILParser();
         private readonly List<DotAssembly> loadedAssemblies = new List<DotAssembly>();
-        private readonly Heap heap = new Heap(100, 1000);
+        private readonly Heap heap = new Heap(1000, 1000);
         private readonly Stack<StackFrame> callStack = new Stack<StackFrame>();
 
         /// <summary>
