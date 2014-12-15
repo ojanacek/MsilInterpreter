@@ -19,6 +19,9 @@ namespace MsilInterpreterLib
         
         public ObjectInstance Get(Guid address)
         {
+            if (address == Guid.Empty)
+                throw new ArgumentException("The address is invalid.");
+
             ObjectInstance objectInstance;
             if (!firstGen.TryGetValue(address, out objectInstance))
             {
