@@ -507,13 +507,10 @@ namespace MsilInterpreterLib
         private DotMethod LookUpVirtualMethod(DotType declaringDerivedType, DotMethod virtualMethod)
         {
             var overridingMethod = declaringDerivedType.Methods.FirstOrDefault(m => m.Name == virtualMethod.Name);
-            if (overridingMethod != null)
-            {
-                if (virtualMethod.IsAbstract)
-                    return overridingMethod;
-            }
+            if (overridingMethod == null)
+                throw new ArgumentException("A method does not exist in this type. This should not happen, derived types have always defined all virtual methods.");
 
-            return virtualMethod;
+            return overridingMethod;
         }
 
         #endregion
