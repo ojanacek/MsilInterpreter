@@ -290,7 +290,7 @@ namespace MsilInterpreterLib
                     var value = PopFromStack();
                     var objectRef = (Guid) PopFromStack();
                     var instance = GetFromHeap(objectRef);
-                    instance["Value"] = value;
+                    instance["Value"] = GetFromHeap((Guid)value)["Value"];
                     break;
                 }
                 case "stloc.0": PopFromStackToLocal(0); break;

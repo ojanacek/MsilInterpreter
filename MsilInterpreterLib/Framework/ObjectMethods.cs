@@ -18,6 +18,7 @@ namespace MsilInterpreterLib.Framework
     {
         public ObjectToString(DotType declaringType) : base("ToString", declaringType, false, typeof(string), null, null)
         {
+            IsVirtual = true;
         }
 
         public override void Execute(Interpreter interpreter)
