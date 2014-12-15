@@ -1,4 +1,6 @@
 ﻿using System;
+using System.Collections.Generic;
+using System.Linq;
 using MsilInterpreterLib.Components;
 
 namespace MsilInterpreterLib.Framework
@@ -40,13 +42,27 @@ namespace MsilInterpreterLib.Framework
 
     internal sealed class StringJoin : DotMethod
     {
-        public StringJoin(DotType type) : base("Join", type, true, typeof(string), null, null)
+        public StringJoin(DotType type) : base("Join", type, true, typeof(string), new []{ typeof(string), typeof(List<object>) }, null)
         {
         }
 
         public override void Execute(Interpreter interpreter)
         {
-            throw new NotImplementedException();
+            var separatorRef = interpreter.CurrentStackFrame.Arguments[0];
+            var separator = interpreter.GetFromHeap((Guid) separatorRef)["Value"] as string;
+            var valuesRef = interpreter.CurrentStackFrame.Arguments[1];
+            var values = interpreter.GetFromHeap((Guid)valuesRef)["Values"] as List<object>;
+
+            if (values[0] is Guid)
+            {
+                values = values.Select(v => interpreter.GetFromHeap((Guid) v)["Value"]).ToList();
+            }
+
+            var result = string.Join(separator, values);
+            ObjectInstance instance;
+            var resultRef = interpreter.CreateObjectInstance(interpreter.LookUpType(typeof(string)), out instance);
+            instance["Value"] = result;
+            interpreter.PushToStack(resultRef);
         }
     }
 
@@ -59,11 +75,10 @@ namespace MsilInterpreterLib.Framework
         public override void Execute(Interpreter interpreter)
         {
             var stringRef = interpreter.CurrentStackFrame.Arguments[0];
-            var stringInstance = interpreter.GetFromHeap((Guid) stringRef);
+            var textToSplit = interpreter.GetFromHeap((Guid)stringRef)["Value"] as string;
             var separatorsRef = interpreter.CurrentStackFrame.Arguments[1];
-            var separatorsInstance = interpreter.GetFromHeap((Guid) separatorsRef);
-            var separators = separatorsInstance["Values"] as char[];
-            var textToSplit = stringInstance["Value"].ToString();
+            var separators = interpreter.GetFromHeap((Guid)separatorsRef)["Values"] as char[];
+
             var parts = textToSplit.Split(separators);
             var resultRef = interpreter.CreateRefTypeArray(parts);
             interpreter.PushToStack(resultRef);
