@@ -15,7 +15,8 @@ namespace MsilInterpreterLib.Framework
             for (int i = 0; i < 3; i++)
             {
                 var strRef = interpreter.CurrentStackFrame.Arguments[i];
-                var str = interpreter.GetFromHeap((Guid) strRef)["Value"].ToString();
+                var strValue = interpreter.GetFromHeap((Guid) strRef)["Value"];
+                var str = strValue == null ? "" : strValue.ToString();
                 result += str;
             }
             ObjectInstance instance;
