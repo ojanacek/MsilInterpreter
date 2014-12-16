@@ -294,6 +294,15 @@ namespace MsilInterpreterLib
                     array[index] = value;
                     break;
                 }
+                case "stelem.ref":
+                {
+                    dynamic value = PopFromStack();
+                    int index = (int)PopFromStack();
+                    var arrayRef = (Guid)PopFromStack();
+                    dynamic arrayValues = GetFromHeap(arrayRef)["Values"];
+                    arrayValues[index] = value;
+                    break;
+                }
                 case "stfld":
                 {
                     var newFieldValue = PopFromStack();
