@@ -120,6 +120,14 @@ namespace MsilInterpreterLib
                     PushToStack(op1 / op2);
                     break;
                 }
+                case "dup":
+                {
+                    var value = PopFromStack();
+                    var duplicate = value;
+                    PushToStack(value);
+                    PushToStack(duplicate);
+                    break;
+                }
                 case "isinst":
                 {
                     var objReference = PopFromStack();
@@ -195,24 +203,25 @@ namespace MsilInterpreterLib
                     break;
                 }
                 case "ldelem.ref":
-                {
-                    int index = (int)PopFromStack();
-                    var arrayObjRef = (Guid)PopFromStack();
-                    var array = GetFromHeap(arrayObjRef)["Values"] as Guid[];
-                    PushToStack(array[index]);
-                    break;
-                }
                 case "ldelema":
                 {
                     int index = (int) PopFromStack();
-                    var arrayRef = (Guid) PopFromStack();
-                    var array = GetFromHeap(arrayRef)["Values"] as Guid[];
-                    if (array[index] == Guid.Empty)
+                    var arrayInstance = GetFromHeap((Guid)PopFromStack());
+                    var arrayValues = arrayInstance["Values"] as Guid[];
+                    if (arrayValues[index] == Guid.Empty)
                     {
                         ObjectInstance instance;
-                        array[index] = CreateObjectInstance(LookUpType(instruction.Operand as Type), out instance);
+                        var elementType = instruction.Operand as Type;
+                        if (elementType != null)
+                        {
+                            arrayValues[index] = CreateObjectInstance(LookUpType(elementType), out instance);
+                        }
+                        else
+                        {
+                            arrayValues[index] = CreateObjectInstance(arrayInstance["ElementType"] as DotType, out instance);
+                        }
                     }
-                    PushToStack(array[index]);
+                    PushToStack(arrayValues[index]);
                     break;
                 }
                 case "ldfld":
@@ -266,6 +275,7 @@ namespace MsilInterpreterLib
                     {
                         var array = new Guid[size];
                         arrayInstance["Values"] = array;
+                        arrayInstance["ElementType"] = LookUpType(elementType);
                     }
 
                     PushToStack(reference);

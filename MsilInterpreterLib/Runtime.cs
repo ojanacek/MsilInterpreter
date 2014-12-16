@@ -130,7 +130,8 @@ namespace MsilInterpreterLib
             arrayType.Fields = new List<DotField>
             {
                 new DotField("Values", arrayType),
-                new DotField("Length", arrayType)
+                new DotField("Length", arrayType),
+                new DotField("ElementType", arrayType)
             };
             fwAssembly.Types.Add(arrayType);
 
